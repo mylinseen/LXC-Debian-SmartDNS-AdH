@@ -1,7 +1,7 @@
 #!/bin/bash
 # ======================================================
-# 🔥 SmartDNS + AdGuardHome 最优部署脚本
-# 适合高速解析 + 视频流畅 + 广告过滤
+# 🔥 LXC-Debian-SmartDNS-AdH 安装脚本（修订版）
+# 适用于 Debian/Ubuntu/PVE LXC，支持 SmartDNS + AdGuardHome
 # ======================================================
 
 echo ">>> 更新系统软件..."
@@ -11,7 +11,7 @@ apt update -y && apt upgrade -y
 echo ">>> 安装 SmartDNS..."
 apt install -y smartdns || { echo "[错误] SmartDNS安装失败"; exit 1; }
 
-# SmartDNS配置
+# SmartDNS 配置
 cat >/etc/smartdns/smartdns.conf <<EOF
 bind :6053
 cache-size 1024
@@ -37,19 +37,32 @@ systemctl enable smartdns
 systemctl restart smartdns
 echo "[OK] SmartDNS 已运行 → 端口 6053"
 
-# ========== 安装 AdGuardHome ==========
+# ========== 下载并安装 AdGuardHome ==========
 echo ">>> 下载并安装 AdGuardHome..."
-cd /opt && wget -O AdGuardHome.tar.gz \
-"https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz"
+cd /opt || { echo "[错误] 无法进入 /opt 目录"; exit 1; }
+wget -O AdGuardHome.tar.gz \
+"https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz" || { echo "[错误] 下载 AdGuardHome 失败"; exit 1; }
 
 tar -xzf AdGuardHome.tar.gz && rm -f AdGuardHome.tar.gz
 cd AdGuardHome
+
+# 安装 AdGuardHome
 ./AdGuardHome -s install
 
-# 🔥 接入 SmartDNS 作为上游
-sed -i 's/127.0.0.1:53/127.0.0.1:6053/g' /opt/AdGuardHome/AdGuardHome.yaml
-systemctl restart AdGuardHome
+# 检查是否安装成功，并确保配置文件存在
+if [ ! -f /opt/AdGuardHome/AdGuardHome.yaml ]; then
+    echo "[错误] AdGuardHome 配置文件缺失，重新安装或手动解决该问题。"
+    exit 1
+fi
 
+# 更新 AdGuardHome 配置文件，确保 SmartDNS 作为上游
+sed -i 's/127.0.0.1:53/127.0.0.1:6053/g' /opt/AdGuardHome/AdGuardHome.yaml
+
+# 启动 AdGuardHome 服务
+systemctl restart AdGuardHome
+echo "[OK] AdGuardHome 已启动 → 端口 53"
+
+# ================== 部署完成 ==================
 echo "===================== 部署完成 ====================="
 echo "📍 AdGuardHome 面板   → http://LXC_IP:3000"
 echo "📍 AGH DNS监听        → 53"
