@@ -23,4 +23,4 @@
 - 在 LXC 容器中执行以下命令，直接安装 SmartDNS 和 AdGuardHome：
 
 ```bash
-bash <(curl -s https://github.com/mylinseen/LXC-Debian-SmartDNS-AdH/raw/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/mylinseen/LXC-Debian-SmartDNS-AdH/main/install.sh)
